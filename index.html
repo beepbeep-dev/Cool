@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Image Generator</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; padding: 20px; text-align: center; background: #121212; color: white; }
+        input { padding: 12px; width: 80%; max-width: 400px; border-radius: 8px; border: 1px solid #333; margin-bottom: 10px; background: #222; color: white; }
+        button { padding: 12px 24px; border-radius: 8px; border: none; background: #007bff; color: white; font-weight: bold; cursor: pointer; }
+        #output { margin-top: 20px; }
+        img { max-width: 100%; border-radius: 8px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <h2>GPT Image 1 Generator</h2>
+    <input type="text" id="promptBox" placeholder="Type an image description...">
+    <br>
+    <button onclick="generateImage()">Generate</button>
+    <div id="output"></div>
+
+    <!-- Puter Library CDN -->
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        function generateImage() {
+            const prompt = document.getElementById('promptBox').value;
+            const output = document.getElementById('output');
+            output.innerHTML = "<p style='color: #aaa;'>Generating via gpt-image-1... please wait.</p>";
+
+            // Using the precise Puter API syntax with catch errors handled
+            puter.txt2img(prompt, { model: "gpt-image-1" })
+                .then(imgElement => {
+                    output.innerHTML = ""; 
+                    output.appendChild(imgElement);
+                })
+                .catch(err => {
+                    output.innerHTML = "<p style='color:red;'>Error: " + JSON.stringify(err) + "<br>Try a different prompt.</p>";
+                });
+        }
+    </script>
+</body>
+</html>
