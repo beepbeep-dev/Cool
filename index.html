@@ -1,42 +1,472 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Image Generator</title>
-    <style>
-        body { font-family: -apple-system, sans-serif; padding: 20px; text-align: center; background: #121212; color: white; }
-        input { padding: 12px; width: 80%; max-width: 400px; border-radius: 8px; border: 1px solid #333; margin-bottom: 10px; background: #222; color: white; }
-        button { padding: 12px 24px; border-radius: 8px; border: none; background: #007bff; color: white; font-weight: bold; cursor: pointer; }
-        #output { margin-top: 20px; }
-        img { max-width: 100%; border-radius: 8px; margin-top: 10px; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Puter AI Generator</title>
+  <script src="https://js.puter.com/v2/"></script>
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f0f13;
+      --surface:   #1a1a24;
+      --surface2:  #22222f;
+      --accent:    #7c6dfa;
+      --accent2:   #fa6d9a;
+      --text:      #e8e8f0;
+      --muted:     #888899;
+      --radius:    14px;
+      --shadow:    0 8px 32px rgba(0,0,0,.45);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px 16px 40px;
+    }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    header h1 {
+      font-size: clamp(1.6rem, 5vw, 2.4rem);
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.5px;
+    }
+    header p {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 6px;
+    }
+
+    /* ── Layout ── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+      gap: 24px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255,255,255,.06);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      padding: 3px 8px;
+      border-radius: 99px;
+      background: rgba(124,109,250,.18);
+      color: var(--accent);
+    }
+    .badge.pink {
+      background: rgba(250,109,154,.18);
+      color: var(--accent2);
+    }
+
+    /* ── Form Elements ── */
+    textarea, select {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 0.95rem;
+      padding: 12px 14px;
+      resize: vertical;
+      outline: none;
+      transition: border-color .2s;
+      font-family: inherit;
+    }
+    textarea:focus, select:focus {
+      border-color: var(--accent);
+    }
+    textarea { min-height: 90px; }
+
+    label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .field { display: flex; flex-direction: column; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .2s, transform .1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .btn-img {
+      background: linear-gradient(135deg, #7c6dfa, #5a4de0);
+      color: #fff;
+    }
+    .btn-vid {
+      background: linear-gradient(135deg, #fa6d9a, #e04d78);
+      color: #fff;
+    }
+
+    /* ── Status Bar ── */
+    .status {
+      font-size: 0.82rem;
+      color: var(--muted);
+      min-height: 20px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .status.running { color: var(--accent); }
+    .status.error   { color: #ff6b6b; }
+    .status.done    { color: #6bffb8; }
+
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      display: none;
+      animation: spin .7s linear infinite;
+      flex-shrink: 0;
+    }
+    .status.running .spinner { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Output Area ── */
+    .output {
+      background: var(--surface2);
+      border-radius: 10px;
+      border: 1px dashed rgba(255,255,255,.1);
+      min-height: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+    .output-placeholder {
+      color: var(--muted);
+      font-size: 0.85rem;
+      text-align: center;
+      padding: 16px;
+      pointer-events: none;
+    }
+    .output img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 9px;
+      animation: fadeIn .4s ease;
+    }
+    .output video {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 9px;
+      animation: fadeIn .4s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(.97); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    /* ── Download Button ── */
+    .btn-dl {
+      display: none;
+      margin-top: 4px;
+      background: rgba(255,255,255,.07);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      text-align: center;
+      text-decoration: none;
+      transition: background .2s;
+    }
+    .btn-dl:hover { background: rgba(255,255,255,.12); }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+  </style>
 </head>
 <body>
 
-    <h2>GPT Image 1 Generator</h2>
-    <input type="text" id="promptBox" placeholder="Type an image description...">
-    <br>
-    <button onclick="generateImage()">Generate</button>
-    <div id="output"></div>
+  <header>
+    <h1>✦ Puter AI Generator</h1>
+    <p>Free · Zero credits · Powered by <a href="https://puter.com" target="_blank" style="color:var(--accent);text-decoration:none;">Puter.js v2</a></p>
+  </header>
 
-    <!-- Puter Library CDN -->
-    <script src="https://js.puter.com/v2/"></script>
-    <script>
-        function generateImage() {
-            const prompt = document.getElementById('promptBox').value;
-            const output = document.getElementById('output');
-            output.innerHTML = "<p style='color: #aaa;'>Generating via gpt-image-1... please wait.</p>";
+  <div class="grid">
 
-            // Using the precise Puter API syntax with catch errors handled
-            puter.txt2img(prompt, { model: "gpt-image-1" })
-                .then(imgElement => {
-                    output.innerHTML = ""; 
-                    output.appendChild(imgElement);
-                })
-                .catch(err => {
-                    output.innerHTML = "<p style='color:red;'>Error: " + JSON.stringify(err) + "<br>Try a different prompt.</p>";
-                });
+    <!-- ══════════════ IMAGE CARD ══════════════ -->
+    <div class="card">
+      <div class="card-title">
+        🖼️ Image Generator
+        <span class="badge">gpt-image-1</span>
+      </div>
+
+      <div class="field">
+        <label for="img-prompt">Prompt</label>
+        <textarea id="img-prompt" placeholder="A neon samurai standing on a rooftop at night, ultra-detailed, cinematic lighting…"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="img-size">Size</label>
+        <select id="img-size">
+          <option value="1024x1024">1024 × 1024 (Square)</option>
+          <option value="1792x1024">1792 × 1024 (Landscape)</option>
+          <option value="1024x1792">1024 × 1792 (Portrait)</option>
+        </select>
+      </div>
+
+      <button class="btn btn-img" id="img-btn" onclick="generateImage()">
+        <span>✦</span> Generate Image
+      </button>
+
+      <div class="status" id="img-status">
+        <div class="spinner"></div>
+        <span class="status-text">Ready</span>
+      </div>
+
+      <div class="output" id="img-output">
+        <div class="output-placeholder">Your image will appear here ✦</div>
+      </div>
+
+      <a class="btn-dl" id="img-dl" download="puter-image.png">⬇ Download Image</a>
+    </div>
+
+    <!-- ══════════════ VIDEO CARD ══════════════ -->
+    <div class="card">
+      <div class="card-title">
+        🎬 Video Generator
+        <span class="badge pink">txt2vid</span>
+      </div>
+
+      <div class="field">
+        <label for="vid-prompt">Prompt</label>
+        <textarea id="vid-prompt" placeholder="A lone astronaut walking across a red desert planet, dust swirling, epic wide shot…"></textarea>
+      </div>
+
+      <button class="btn btn-vid" id="vid-btn" onclick="generateVideo()">
+        <span>▶</span> Generate Video
+      </button>
+
+      <div class="status" id="vid-status">
+        <div class="spinner"></div>
+        <span class="status-text">Ready</span>
+      </div>
+
+      <div class="output" id="vid-output">
+        <div class="output-placeholder">Your video will appear here ▶</div>
+      </div>
+
+      <a class="btn-dl" id="vid-dl" download="puter-video.mp4">⬇ Download Video</a>
+    </div>
+
+  </div>
+
+  <footer>
+    Built with <a href="https://js.puter.com/v2/" target="_blank">Puter.js v2</a> &mdash; No API keys. No billing. Ever.
+  </footer>
+
+  <script>
+    /* ─────────────────────────────────────────────
+       HELPERS
+    ───────────────────────────────────────────── */
+    function setStatus(id, state, message) {
+      const el = document.getElementById(id + '-status');
+      el.className = 'status ' + state;
+      el.querySelector('.status-text').textContent = message;
+    }
+
+    function lockBtn(id, locked) {
+      document.getElementById(id + '-btn').disabled = locked;
+    }
+
+    function clearOutput(id) {
+      const out = document.getElementById(id + '-output');
+      out.innerHTML = '';
+      document.getElementById(id + '-dl').style.display = 'none';
+    }
+
+    /* ─────────────────────────────────────────────
+       IMAGE GENERATOR
+    ───────────────────────────────────────────── */
+    async function generateImage() {
+      const prompt = document.getElementById('img-prompt').value.trim();
+      const size   = document.getElementById('img-size').value;
+
+      if (!prompt) {
+        setStatus('img', 'error', 'Please enter a prompt first.');
+        return;
+      }
+
+      lockBtn('img', true);
+      clearOutput('img');
+      setStatus('img', 'running', 'Generating image… this may take 10–30 s');
+
+      try {
+        /* puter.ai.txt2img() returns a native <img> element */
+        const imgEl = await puter.ai.txt2img(prompt, false, {
+          model: 'gpt-image-1',
+          size:  size
+        });
+
+        /* Safety: make sure we have an element */
+        if (!imgEl || imgEl.tagName !== 'IMG') {
+          throw new Error('Unexpected response — no <img> returned.');
         }
-    </script>
+
+        imgEl.alt   = prompt;
+        imgEl.style.borderRadius = '9px';
+
+        const out = document.getElementById('img-output');
+        out.innerHTML = '';
+        out.appendChild(imgEl);
+
+        /* Wire up download link using the resolved src */
+        const dlBtn = document.getElementById('img-dl');
+        dlBtn.href  = imgEl.src;
+        dlBtn.style.display = 'block';
+
+        setStatus('img', 'done', '✓ Image ready!');
+      } catch (err) {
+        console.error('[Image] Error:', err);
+        setStatus('img', 'error', '✗ ' + (err.message || 'Unknown error. Check console.'));
+      } finally {
+        lockBtn('img', false);
+      }
+    }
+
+    /* ─────────────────────────────────────────────
+       VIDEO GENERATOR
+    ───────────────────────────────────────────── */
+    async function generateVideo() {
+      const prompt = document.getElementById('vid-prompt').value.trim();
+
+      if (!prompt) {
+        setStatus('vid', 'error', 'Please enter a prompt first.');
+        return;
+      }
+
+      lockBtn('vid', true);
+      clearOutput('vid');
+      setStatus('vid', 'running', 'Generating video… this can take 1–3 min ☕');
+
+      try {
+        /*
+         * puter.ai.txt2vid() may return:
+         *   • A native <video> element  (ideal path)
+         *   • A plain URL string        (fallback)
+         *   • A Blob / File object      (fallback)
+         */
+        const result = await puter.ai.txt2vid(prompt);
+
+        const out = document.getElementById('vid-output');
+        out.innerHTML = '';
+
+        let videoSrc = null;
+
+        if (result instanceof HTMLVideoElement) {
+          /* Best case — Puter handed us a ready <video> */
+          result.controls = true;
+          result.style.borderRadius = '9px';
+          out.appendChild(result);
+          videoSrc = result.src;
+
+        } else if (typeof result === 'string') {
+          /* URL string */
+          videoSrc = result;
+          const vid = document.createElement('video');
+          vid.src      = result;
+          vid.controls = true;
+          vid.autoplay = false;
+          vid.style.width        = '100%';
+          vid.style.borderRadius = '9px';
+          out.appendChild(vid);
+
+        } else if (result instanceof Blob || result instanceof File) {
+          /* Blob / File */
+          videoSrc = URL.createObjectURL(result);
+          const vid = document.createElement('video');
+          vid.src      = videoSrc;
+          vid.controls = true;
+          vid.style.width        = '100%';
+          vid.style.borderRadius = '9px';
+          out.appendChild(vid);
+
+        } else {
+          throw new Error('Unexpected response type: ' + typeof result);
+        }
+
+        /* Wire up download link */
+        if (videoSrc) {
+          const dlBtn = document.getElementById('vid-dl');
+          dlBtn.href  = videoSrc;
+          dlBtn.style.display = 'block';
+        }
+
+        setStatus('vid', 'done', '✓ Video ready!');
+      } catch (err) {
+        console.error('[Video] Error:', err);
+        setStatus('vid', 'error', '✗ ' + (err.message || 'Unknown error. Check console.'));
+      } finally {
+        lockBtn('vid', false);
+      }
+    }
+  </script>
 </body>
 </html>
